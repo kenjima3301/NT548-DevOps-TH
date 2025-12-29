@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Master Template: Calls Networking, Security, and Compute Modules"
+
+Parameters:
+  KeyName:
+    Description: KeyPair Name
+    Type: AWS::EC2::KeyPair::KeyName
+  MyPublicIP:
+    Description: Your IP Address
+    Type: String
+    Default: 0.0.0.0/0
+  S3BucketURL:
+    Description: URL to the S3 bucket folder containing child templates
+    Type: String
+
+Resources:
+  # Gọi Module Networking
+  NetworkingStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${S3BucketURL}/networking.yaml"
+
+  # Gọi Module Security (Cần VPC ID từ Networking)
+  SecurityStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${S3BucketURL}/security.yaml"
+      Parameters:
+        VpcId: !GetAtt NetworkingStack.Outputs.VpcId
+        MyPublicIP: !Ref MyPublicIP
+
+  # Gọi Module Compute (Cần Subnet từ Net, SG từ Sec)
+  ComputeStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${S3BucketURL}/compute.yaml"
+      Parameters:
+        KeyName: !Ref KeyName
+        LatestAmiId: ami-00d8fc944fb171e29
+        PublicSubnetId: !GetAtt NetworkingStack.Outputs.PublicSubnetId
+        PrivateSubnetId: !GetAtt NetworkingStack.Outputs.PrivateSubnetId
+        PublicSecurityGroupId: !GetAtt SecurityStack.Outputs.PublicSecurityGroupId
+        PrivateSecurityGroupId: !GetAtt SecurityStack.Outputs.PrivateSecurityGroupId
+
+Outputs:
+  SSHPublicCommand:
+    Value: !Sub "ssh -i ${KeyName}.pem ubuntu@${ComputeStack.Outputs.PublicIP}"
+  PrivateInstanceIP:
+    Value: !GetAtt ComputeStack.Outputs.PrivateIP

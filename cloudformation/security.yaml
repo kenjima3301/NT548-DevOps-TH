@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Module Security: EC2 Security Groups"
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  MyPublicIP:
+    Type: String
+
+Resources:
+  PublicSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH from Home
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref MyPublicIP
+
+  PrivateSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH from Public EC2 only
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref PublicSG
+
+Outputs:
+  PublicSecurityGroupId:
+    Value: !Ref PublicSG
+  PrivateSecurityGroupId:
+    Value: !Ref PrivateSG
