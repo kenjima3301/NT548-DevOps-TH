@@ -1,0 +1,19 @@
+soft-fail: true
+framework:
+  - terraform
+download-external-modules: true
+evaluate-variables: true
+
+# Skip specific checks nếu cần
+skip-check:
+  # - CKV_AWS_79  # Example: Ensure Instance Metadata Service Version 1 is not enabled
+  # - CKV_AWS_8   # Example: Ensure all data stored in the Launch configuration EBS is securely encrypted
+
+# Chỉ scan các directories cụ thể
+directory:
+  - terraform/
+
+# Output format
+output: cli
+compact: false
+quiet: false
