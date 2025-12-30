@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Module Compute: EC2 Instances"
+
+Parameters:
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+  LatestAmiId:
+    Type: String
+  PublicSubnetId:
+    Type: String
+  PrivateSubnetId:
+    Type: String
+  PublicSecurityGroupId:
+    Type: String
+  PrivateSecurityGroupId:
+    Type: String
+
+Resources:
+  PublicEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      ImageId: !Ref LatestAmiId
+      KeyName: !Ref KeyName
+      SubnetId: !Ref PublicSubnetId
+      SecurityGroupIds: [!Ref PublicSecurityGroupId]
+      Tags: [{ Key: Name, Value: Lab1-Public-EC2 }]
+
+  PrivateEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      ImageId: !Ref LatestAmiId
+      KeyName: !Ref KeyName
+      SubnetId: !Ref PrivateSubnetId
+      SecurityGroupIds: [!Ref PrivateSecurityGroupId]
+      Tags: [{ Key: Name, Value: Lab1-Private-EC2 }]
+
+Outputs:
+  PublicIP:
+    Value: !GetAtt PublicEC2Instance.PublicIp
+  PrivateIP:
+    Value: !GetAtt PrivateEC2Instance.PrivateIp
