@@ -1,8 +1,5 @@
-#!/bin/bash
-
-# --- CẤU HÌNH MẶC ĐỊNH ---
 STACK_NAME="Lab1-NestedStack"
-REGION="ap-southeast-1"  # Vùng của bạn
+REGION="ap-southeast-1"  
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -14,9 +11,6 @@ echo -e "${GREEN}   SCRIPT TỰ ĐỘNG DEPLOY AWS CLOUDFORMATION   ${NC}"
 echo -e "${GREEN}   Region: $REGION                            ${NC}"
 echo -e "${GREEN}==============================================${NC}"
 
-# --- PHẦN 1: THU THẬP THÔNG TIN ---
-
-# 1. Nhập S3 Bucket
 echo -e "${YELLOW}[INPUT] Nhập tên S3 Bucket chứa code (Bắt buộc):${NC}"
 read BUCKET_NAME
 
@@ -25,7 +19,6 @@ if [ -z "$BUCKET_NAME" ]; then
   exit 1
 fi
 
-# 2. Nhập KeyPair
 echo -e "${YELLOW}[INPUT] Nhập tên KeyPair (VD: vockey):${NC}"
 read KEY_NAME
 
@@ -34,7 +27,6 @@ if [ -z "$KEY_NAME" ]; then
   exit 1
 fi
 
-# 3. Xử lý IP Public (Tự động lấy để đỡ phải gõ)
 CURRENT_IP=$(curl -s http://checkip.amazonaws.com)
 echo -e "${YELLOW}[INPUT] IP Public hiện tại của bạn là: $CURRENT_IP${NC}"
 echo -e "Nhấn [ENTER] để dùng IP này, hoặc nhập IP khác:"
@@ -46,19 +38,16 @@ else
   MY_IP="$INPUT_IP/32"
 fi
 
-# --- PHẦN 2: THỰC THI ---
-
 echo "----------------------------------------------------"
 echo -e "${GREEN}[BƯỚC 1] Packaging... (Upload file lên S3)${NC}"
 
-# Lệnh package: Upload file local -> S3 và tạo ra file packaged-template.yaml
+# Upload file local -> S3 và tạo ra file packaged-template.yaml
 aws cloudformation package \
     --template-file main.yaml \
     --s3-bucket "$BUCKET_NAME" \
     --output-template-file packaged-template.yaml \
     --region $REGION
 
-# Kiểm tra lỗi (ví dụ sai tên bucket)
 if [ $? -ne 0 ]; then
   echo -e "${RED}❌ Lỗi: Không thể upload lên S3. Kiểm tra lại tên Bucket hoặc quyền AWS CLI.${NC}"
   exit 1
@@ -67,7 +56,6 @@ fi
 echo "----------------------------------------------------"
 echo -e "${GREEN}[BƯỚC 2] Deploying... (Tạo Stack trên AWS)${NC}"
 
-# Lệnh deploy: Dùng file packaged-template.yaml để tạo stack
 aws cloudformation deploy \
     --template-file packaged-template.yaml \
     --stack-name "$STACK_NAME" \
@@ -77,14 +65,12 @@ aws cloudformation deploy \
         MyPublicIP="$MY_IP" \
     --region $REGION
 
-# Kiểm tra kết quả
 if [ $? -eq 0 ]; then
     echo "----------------------------------------------------"
     echo -e "${GREEN}✅ TRIỂN KHAI THÀNH CÔNG!${NC}"
     echo ""
     echo -e "${YELLOW}👇 Dưới đây là thông tin kết nối (Outputs):${NC}"
     
-    # In ra Outputs (Lệnh SSH) để copy cho tiện
     aws cloudformation describe-stacks \
         --stack-name "$STACK_NAME" \
         --region $REGION \
