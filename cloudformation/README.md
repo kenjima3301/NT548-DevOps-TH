@@ -1,98 +1,91 @@
-# AWS Cloudformation
-# AWS CloudFormation - Triển khai Hạ tầng 
-Dự án này triển khai hạ tầng AWS cơ bản (VPC, Public/Private Subnets, EC2) sử dụng kỹ thuật CloudFormation Nested Stacks. Toàn bộ mã nguồn được lưu trữ và triển khai trực tiếp từ Amazon S3.
+# AWS CloudFormation - Triển khai Hạ tầng Tự động
+Dự án này triển khai hạ tầng AWS cơ bản (VPC, Public/Private Subnets, EC2) sử dụng kỹ thuật CloudFormation Nested Stacks. Toàn bộ mã nguồn được đóng gói và triển khai tự động thông qua script và Amazon S3.
 
 1. Kiến trúc hệ thống
 Hệ thống được chia thành 4 template:
 
-main.yaml (Root Stack): Template chính, điều phối việc gọi các stack con.
-
-networking.yaml: Cấu hình VPC, Subnets, Route Tables, NAT/Internet Gateway.
-
-security.yaml: Cấu hình Security Groups.
-
-compute.yaml: Cấu hình EC2 Instances.
+    main.yaml (Root Stack): Template chính, điều phối việc gọi các stack con.
+    networking.yaml: Cấu hình VPC, Subnets, Route Tables, NAT/Internet Gateway.
+    security.yaml: Cấu hình Security Groups.
+    compute.yaml: Cấu hình EC2 Instances.
+    deploy.sh: Script tự động hóa quy trình đóng gói (package) và triển khai (deploy).
 
 2. Yêu cầu trước khi chạy (Prerequisites)
+Để script hoạt động trơn tru, máy tính của bạn cần:
 
-Tài khoản AWS có quyền Administrator.
-
-EC2 Key Pair: Đã tạo sẵn trên AWS và file private key (.pem) đã được lưu trên máy cá nhân.
-
-S3 Bucket: Đã tạo sẵn một Bucket để chứa template.
+    AWS CLI v2: Đã cài đặt và cấu hình (aws configure) với quyền Administrator.
+    Git Bash (Windows): Khuyến nghị sử dụng để chạy script .sh.
+    EC2 Key Pair: Đã tạo sẵn trên AWS Console.
+    Lưu ý: File private key (.pem) phải được lưu trên máy cá nhân để SSH.
 
 3. Cấu trúc thư mục
-.
-├── main.yaml
-├── networking.yaml
-├── security.yaml
-└── compute.yaml
 
-4. Hướng dẫn triển khai 
+    ├── deploy.sh           # Script triển khai tự động
+    ├── main.yaml           # Template cha
+    ├── networking.yaml     # Template mạng
+    ├── security.yaml       # Template bảo mật
+    └── compute.yaml        # Template máy chủ
+4. Hướng dẫn triển khai (Automation)
+Thay vì thao tác thủ công trên Console, chúng ta sẽ sử dụng script.
 
-Bước 1: Upload Template lên S3
-Truy cập S3 Console.
+Bước 1: Tạo S3 Bucket chứa code
+Script cần một nơi để upload các template (đã được đóng gói) lên.
+Chạy lệnh sau để tạo bucket (Tên phải là duy nhất toàn cầu, viết thường, không dấu):
 
-Upload tất cả 4 file (main.yaml, networking.yaml, security.yaml, compute.yaml) lên Bucket.
+        aws s3 mb s3://ten-bucket-duy-nhat-cua-ban
 
-Copy Object URL của file main.yaml (Dùng cho Bước 2).
+Bước 2: Chạy Script Deploy
+Mở Git Bash tại thư mục dự án và chạy:
 
-Copy URL của thư mục Bucket (Dùng cho tham số S3BucketURL ở Bước 3).
+        bash deploy.sh
 
-Bước 2: Khởi tạo Stack
-Truy cập CloudFormation Console -> Create stack -> With new resources (standard).
+Bước 3: Nhập thông tin cấu hình
+Script sẽ hỏi các thông tin đầu vào. Hãy nhập chính xác:
 
-Chọn Amazon S3 URL -> Dán URL của file main.yaml.
+Tên S3 Bucket: Nhập tên bucket bạn vừa tạo ở Bước 1.
+Lưu ý: Không nhập thừa khoảng trắng (space).
 
-Nhấn Next.
+Tên KeyPair: Nhập tên KeyPair trên AWS.
 
-Bước 3: Điền tham số (Configure parameters)
-Stack name: Lab1-CloudFormation.
+⚠️ Quan trọng: Chỉ nhập tên (VD: keypair), KHÔNG nhập đuôi .pem.
 
-KeyName: Chọn Key Pair tương ứng với file .pem bạn đang giữ.
+IP Public: Nhấn Enter để tự động lấy IP hiện tại của bạn.
 
-MyPublicIP: Điền IP Public của máy bạn + /32 (Ví dụ: 123.45.67.89/32).
-
-S3BucketURL: Điền đường dẫn Bucket chứa file (Lưu ý: Không có dấu / ở cuối).
-
-Bước 4: Deploy
-Nhấn Next qua các bước.
-
-Tích chọn "I acknowledge that AWS CloudFormation might create IAM resources...".
-
-Nhấn Submit và đợi trạng thái CREATE_COMPLETE.
+Sau đó, script sẽ tự động upload file lên S3 và tạo Stack trên CloudFormation. Quá trình này mất khoảng 5-10 phút.
 
 5. Kiểm thử & SSH (Sử dụng SSH Agent Forwarding)
 Phương pháp này cho phép SSH từ Public EC2 sang Private EC2 mà không cần copy file .pem lên server, đảm bảo an toàn bảo mật.
-
 Bước 1: Thêm Key vào SSH Agent (Trên máy cá nhân)
-Mở terminal (Git Bash, PowerShell hoặc Terminal Linux/Mac) tại thư mục chứa file key .pem:
+Mở terminal (Git Bash) tại nơi chứa file .pem:
 
-# 1. Kích hoạt ssh-agent (nếu chưa chạy)
-eval "$(ssh-agent -s)"
+# 1. Kích hoạt ssh-agent
+    
+    eval "$(ssh-agent -s)"
 
 # 2. Thêm file key vào agent
-ssh-add ten-key-cua-ban.pem
+    
+    ssh-add ten-key-cua-ban.pem
 
-# 3. Kiểm tra xem key đã vào chưa
-ssh-add -l
+# 3. Kiểm tra xem key đã vào chưa (phải hiện ra chuỗi key)
+    
+    ssh-add -l
 
 Bước 2: SSH vào Public Instance (Bastion Host)
-Sử dụng tham số -A để bật tính năng Forwarding:
+Lấy Public IP của EC2 từ AWS Console hoặc Output của CloudFormation. Sử dụng tham số -A để bật tính năng Forwarding:
 
-ssh -A ubuntu@<Public-IP-Cua-EC2>
+    ssh -A ubuntu@<Public-IP-Cua-EC2>
 
 Bước 3: SSH sang Private Instance
-Sau khi đã đứng ở trong máy Public EC2, bạn có thể SSH thẳng sang máy Private mà không cần file key (Agent sẽ tự chuyển tiếp xác thực):
+Sau khi đã đứng ở trong máy Public EC2, bạn có thể SSH thẳng sang máy Private (dùng Private IP):
 
-ssh ubuntu@<Private-IP-Cua-EC2>
+    ssh ubuntu@<Private-IP-Cua-EC2>
 
 Bước 4: Kiểm tra kết nối Internet (NAT Gateway)
-Tại máy Private EC2, chạy lệnh ping để kiểm tra:
+Tại máy Private EC2, chạy lệnh ping để kiểm tra kết nối ra ngoài Internet:
 
     ping google.com
 
-Kết quả mong đợi: Có phản hồi (reply), chứng tỏ kết nối thành công.
-
 6. Dọn dẹp (Clean up)
-Vào CloudFormation, chọn Stack cha (Lab1-CloudFormation) -> Delete để xóa toàn bộ tài nguyên.
+Để xóa toàn bộ tài nguyên và tránh phát sinh chi phí, bạn có thể xóa Stack từ Console hoặc chạy lệnh:
+
+    aws cloudformation delete-stack --stack-name <TEN_STACK_CUA_BAN>

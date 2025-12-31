@@ -9,34 +9,32 @@ Parameters:
     Description: Your IP Address
     Type: String
     Default: 0.0.0.0/0
-  S3BucketURL:
-    Description: URL to the S3 bucket folder containing child templates
-    Type: String
+  LatestAmiId:
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
+    Default: "/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
+    Description: "Auto-resolve latest Ubuntu 22.04 LTS AMI ID in current Region"
 
 Resources:
-  # Gọi Module Networking
   NetworkingStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub "${S3BucketURL}/networking.yaml"
+      TemplateURL: ./networking.yaml
 
-  # Gọi Module Security (Cần VPC ID từ Networking)
   SecurityStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub "${S3BucketURL}/security.yaml"
+      TemplateURL: ./security.yaml
       Parameters:
         VpcId: !GetAtt NetworkingStack.Outputs.VpcId
         MyPublicIP: !Ref MyPublicIP
 
-  # Gọi Module Compute (Cần Subnet từ Net, SG từ Sec)
   ComputeStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub "${S3BucketURL}/compute.yaml"
+      TemplateURL: ./compute.yaml
       Parameters:
         KeyName: !Ref KeyName
-        LatestAmiId: ami-00d8fc944fb171e29
+        LatestAmiId: !Ref LatestAmiId
         PublicSubnetId: !GetAtt NetworkingStack.Outputs.PublicSubnetId
         PrivateSubnetId: !GetAtt NetworkingStack.Outputs.PrivateSubnetId
         PublicSecurityGroupId: !GetAtt SecurityStack.Outputs.PublicSecurityGroupId
